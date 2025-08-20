@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:hive_flutter/hive_flutter.dart';
+import 'package:provider/provider.dart';
 
 import 'app/app.dart';
 import 'core/constants/app_constants.dart';
+import 'presentation/providers/sensor_data_provider.dart';
 
 /// Main entry point for the Cane AID application
 /// Initializes necessary services and starts the app
@@ -22,7 +24,12 @@ void main() async {
   // Initialize app services (will be implemented later)
   // await _initializeServices();
 
-  runApp(const CaneAidApp());
+  runApp(
+    MultiProvider(
+      providers: [ChangeNotifierProvider(create: (_) => SensorDataProvider())],
+      child: const CaneAidApp(),
+    ),
+  );
 }
 
 /// Initialize app services and dependencies
@@ -48,13 +55,13 @@ Future<void> _initializeServices() async {
 Future<void> _initializeStorageBoxes() async {
   // Settings box
   await Hive.openBox('settings');
-  
+
   // Color history box
   await Hive.openBox('colorHistory');
-  
+
   // Location history box
   await Hive.openBox('locationHistory');
-  
+
   // App logs box
   await Hive.openBox('appLogs');
 }
