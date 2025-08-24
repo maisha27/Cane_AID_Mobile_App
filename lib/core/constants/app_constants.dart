@@ -35,6 +35,14 @@ class AppConstants {
   static const int bluetoothReconnectAttempts = 3;
   static const int bluetoothReconnectDelaySeconds = 5;
 
+  // WebSocket Configuration (new)
+  static const String websocketServerUrl = 'ws://192.168.1.100:8080/cane-aid';
+  static const int websocketTimeoutSeconds = 10;
+  static const int websocketReconnectAttempts = 5;
+  static const int websocketReconnectDelaySeconds = 3;
+  static const int websocketHeartbeatIntervalSeconds = 30;
+  static const int websocketMaxReconnectDelaySeconds = 30;
+
   // Sensor Data Configuration
   static const int sensorDataTimeoutSeconds = 5;
   static const int colorDetectionDelayMs = 1000; // Delay between color readings
@@ -86,10 +94,22 @@ class AppConstants {
   static const String errorDeviceNotFound = 'ESP32 device not found';
   static const String errorConnectionFailed = 'Connection failed';
 
+  // WebSocket Error Messages (new)
+  static const String errorWebSocketConnectionFailed = 'WebSocket connection failed';
+  static const String errorWebSocketServerUnreachable = 'Server unreachable';
+  static const String errorWebSocketDataTimeout = 'WebSocket data timeout';
+  static const String errorWebSocketInvalidData = 'Invalid data received from server';
+  static const String errorWebSocketAuthenticationFailed = 'Server authentication failed';
+
   // Success Messages
   static const String successBluetoothConnected = 'Bluetooth connected successfully';
   static const String successLocationShared = 'Location shared with caretaker';
   static const String successSettingsSaved = 'Settings saved successfully';
+
+  // WebSocket Success Messages (new)
+  static const String successWebSocketConnected = 'Connected to ESP32 server successfully';
+  static const String successWebSocketDataReceived = 'Receiving sensor data from ESP32';
+  static const String successWebSocketReconnected = 'Reconnected to server successfully';
 
   // Validation Constants
   static const int minCaretakerNameLength = 2;

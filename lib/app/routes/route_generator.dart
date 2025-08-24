@@ -6,6 +6,8 @@ import '../../presentation/screens/splash/splash_screen.dart';
 import '../../presentation/screens/home/home_screen.dart';
 import '../../presentation/screens/settings/settings_screen.dart';
 import '../../presentation/screens/bluetooth/bluetooth_connection_screen.dart';
+import '../../presentation/screens/websocket/websocket_test_screen.dart';
+import '../../presentation/screens/websocket/websocket_connection_screen.dart';
 import '../../presentation/screens/color_detection/color_detection_screen.dart';
 import '../../presentation/screens/distance/distance_detection_screen.dart';
 import '../../presentation/screens/location/location_screen.dart';
@@ -74,6 +76,18 @@ class RouteGenerator {
       case AppRoutes.bluetooth:
         return _createRoute(
           const BluetoothConnectionScreen(),
+          settings,
+        );
+
+      case AppRoutes.websocket:
+        return _createRoute(
+          const WebSocketConnectionScreen(),
+          settings,
+        );
+
+      case AppRoutes.websocketTest:
+        return _createRoute(
+          const WebSocketTestScreen(),
           settings,
         );
 

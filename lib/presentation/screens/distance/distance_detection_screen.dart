@@ -4,9 +4,12 @@ import 'package:provider/provider.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/text_styles.dart';
 import '../../../core/theme/dimensions.dart';
+import '../../../core/config/websocket_config.dart';
 import '../../../l10n/generated/app_localizations.dart';
 import '../../widgets/common/accessible_card.dart';
 import '../../providers/tts_provider.dart';
+import '../../providers/websocket_provider.dart';
+import '../../../core/models/esp32_data.dart';
 
 /// Distance Detection screen for real-time obstacle detection
 /// Uses ultrasonic sensor data from ESP32 to measure distances and provide voice alerts
@@ -26,9 +29,36 @@ class _DistanceDetectionScreenState extends State<DistanceDetectionScreen> {
   @override
   void initState() {
     super.initState();
+    _listenToDistanceData();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _announceScreenEntry();
     });
+  }
+
+  void _listenToDistanceData() {
+    // For Phase 2, focus on WebSocket provider only
+    // TODO: Update BluetoothProvider to use unified ESP32Data model in Phase 3
+    final websocketProvider = Provider.of<WebSocketProvider>(context, listen: false);
+    
+    // Listen to WebSocket distance data stream
+    websocketProvider.dataStream.listen((esp32Data) {
+      if (esp32Data.distanceData != null && _isDetecting) {
+        _processDistanceData(esp32Data.distanceData!);
+      }
+    });
+  }
+
+  void _processDistanceData(DistanceData distanceData) async {
+    if (!mounted) return;
+    
+    final oldDistance = _currentDistance;
+    setState(() {
+      _currentDistance = distanceData.distance;
+      _distanceStatus = _isDetecting ? 'Detecting' : 'Ready';
+    });
+    
+    // Announce distance zone changes
+    _announceDistanceChange(oldDistance, _currentDistance);
   }
 
   void _announceScreenEntry() async {
@@ -51,24 +81,77 @@ class _DistanceDetectionScreenState extends State<DistanceDetectionScreen> {
   }
 
   void _toggleDetection() async {
-    setState(() {
-      _isDetecting = !_isDetecting;
-      final l10n = AppLocalizations.of(context)!;
-      _distanceStatus = _isDetecting ? l10n.detecting : l10n.ready;
-    });
-
-    final l10n = AppLocalizations.of(context)!;
+    final websocketProvider = Provider.of<WebSocketProvider>(context, listen: false);
     final ttsProvider = Provider.of<TTSProvider>(context, listen: false);
-    
+    final l10n = AppLocalizations.of(context)!;
+
     if (_isDetecting) {
-      await ttsProvider.speak(l10n.start);
-      HapticFeedback.heavyImpact();
-      // Start simulated distance detection
-      _startDistanceSimulation();
-    } else {
-      await ttsProvider.speak(l10n.stop);  
+      // Stop detection
+      setState(() {
+        _isDetecting = false;
+        _distanceStatus = l10n.ready;
+      });
+      await ttsProvider.speak(l10n.stop);
       HapticFeedback.lightImpact();
+      return;
     }
+
+    // Smart connection: Try WebSocket first
+    bool connected = false;
+    
+    // Try WebSocket connection (automatic)
+    if (!websocketProvider.isConnected) {
+      await ttsProvider.speak('Connecting to ESP32 server...');
+      connected = await _tryWebSocketConnection(websocketProvider);
+    } else {
+      connected = true;
+    }
+
+    // If WebSocket fails, use simulation mode
+    if (!connected) {
+      await ttsProvider.speak('No ESP32 server available. Using simulation mode');
+      _startSimulationMode();
+      return;
+    }
+
+    // Start detection with WebSocket
+    setState(() {
+      _isDetecting = true;
+      _distanceStatus = l10n.detecting;
+    });
+    await ttsProvider.speak('Distance detection started');
+    HapticFeedback.heavyImpact();
+  }
+
+  /// Try to connect via WebSocket automatically
+  Future<bool> _tryWebSocketConnection(WebSocketProvider websocketProvider) async {
+    try {
+      // Try default WebSocket URL from configuration
+      final success = await websocketProvider.connectToServer(
+        customUrl: WebSocketConfig.defaultServerUrl
+      );
+      
+      // Wait a moment to check connection
+      await Future.delayed(Duration(seconds: WebSocketConfig.connectionTimeoutSeconds));
+      
+      return success && websocketProvider.isConnected;
+    } catch (e) {
+      debugPrint('Auto WebSocket connection failed: $e');
+      return false;
+    }
+  }
+
+  /// Start simulation mode when no ESP32 connection available
+  void _startSimulationMode() async {
+    setState(() {
+      _isDetecting = true;
+      _distanceStatus = AppLocalizations.of(context)!.detecting;
+    });
+    
+    final ttsProvider = Provider.of<TTSProvider>(context, listen: false);
+    await ttsProvider.speak('Simulation mode activated');
+    
+    _startDistanceSimulation();
   }
 
   void _startDistanceSimulation() {

@@ -35,7 +35,7 @@ class _HomeScreenState extends State<HomeScreen> {
         
         // Announce available features
         await Future.delayed(const Duration(milliseconds: 1000));
-        await ttsProvider.speak('Four features available: Color detection, Distance detection, Location sharing, and Bluetooth connection.');
+        await ttsProvider.speak('Four features available: Color detection, Distance detection, Bluetooth connection, and Location services.');
       } catch (e) {
         debugPrint('TTS announcement error: $e');
       }
@@ -117,7 +117,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     // Vertical divider
                     Container(
                       width: 2,
-                      color: AppColors.primary.withOpacity(0.3),
+                      color: AppColors.primary.withValues(alpha: 0.3),
                     ),
                     // Top Right - Distance Detection (Obstacle Detection)
                     Expanded(
@@ -135,28 +135,13 @@ class _HomeScreenState extends State<HomeScreen> {
               // Horizontal divider
               Container(
                 height: 2,
-                color: AppColors.primary.withOpacity(0.3),
+                color: AppColors.primary.withValues(alpha: 0.3),
               ),
               // Bottom row
               Expanded(
                 child: Row(
                   children: [
-                    // Bottom Left - Location Services (GPS)
-                    Expanded(
-                      child: _buildFullSectionCard(
-                        icon: Icons.location_on,
-                        title: l10n.locationServices,
-                        subtitle: l10n.locationServicesSubtitle,
-                        onTap: () => Navigator.pushNamed(context, AppRoutes.location),
-                        semanticLabel: '${l10n.locationServices} feature. ${l10n.locationServicesSubtitle}.',
-                      ),
-                    ),
-                    // Vertical divider
-                    Container(
-                      width: 2,
-                      color: AppColors.primary.withOpacity(0.3),
-                    ),
-                    // Bottom Right - Bluetooth Connection
+                    // Bottom Left - Bluetooth Device Connection
                     Expanded(
                       child: _buildFullSectionCard(
                         icon: Icons.bluetooth,
@@ -164,6 +149,21 @@ class _HomeScreenState extends State<HomeScreen> {
                         subtitle: l10n.deviceConnectionSubtitle,
                         onTap: () => Navigator.pushNamed(context, AppRoutes.bluetooth),
                         semanticLabel: '${l10n.deviceConnection} feature. ${l10n.deviceConnectionSubtitle}.',
+                      ),
+                    ),
+                    // Vertical divider
+                    Container(
+                      width: 2,
+                      color: AppColors.primary.withValues(alpha: 0.3),
+                    ),
+                    // Bottom Right - Location Services
+                    Expanded(
+                      child: _buildFullSectionCard(
+                        icon: Icons.location_on,
+                        title: l10n.locationServices,
+                        subtitle: l10n.locationServicesSubtitle,
+                        onTap: () => Navigator.pushNamed(context, AppRoutes.location),
+                        semanticLabel: '${l10n.locationServices} feature. ${l10n.locationServicesSubtitle}.',
                       ),
                     ),
                   ],

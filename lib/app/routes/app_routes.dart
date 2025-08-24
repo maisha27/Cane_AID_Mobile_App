@@ -14,6 +14,8 @@ class AppRoutes {
   static const String distanceDetection = '/distance-detection';
   static const String location = '/location';
   static const String bluetooth = '/bluetooth';
+  static const String websocket = '/websocket';
+  static const String websocketTest = '/websocket-test';
 
   // Settings Routes
   static const String settings = '/settings';
@@ -36,6 +38,8 @@ class AppRoutes {
     distanceDetection,
     location,
     bluetooth,
+    websocket,
+    websocketTest,
     settings,
     voiceSettings,
     caretakerSettings,

@@ -8,6 +8,7 @@ import '../core/theme/app_theme.dart';
 import '../core/constants/app_constants.dart';
 import '../presentation/providers/tts_provider.dart';
 import '../presentation/providers/bluetooth_provider.dart';
+import '../presentation/providers/websocket_provider.dart';
 import 'routes/app_routes.dart';
 import 'routes/route_generator.dart';
 import '../l10n/generated/app_localizations.dart';
@@ -30,16 +31,20 @@ class CaneAidApp extends StatelessWidget {
         ChangeNotifierProvider(
           create: (_) => TTSProvider()..initialize(),
         ),
-        // Bluetooth Provider for ESP32 communication
+        // Bluetooth Provider for ESP32 communication (legacy)
         ChangeNotifierProvider(
           create: (_) => BluetoothProvider()..initialize(),
+        ),
+        // WebSocket Provider for ESP32 communication via laptop bridge
+        ChangeNotifierProvider(
+          create: (_) => WebSocketProvider()..initialize(),
         ),
         // Will add more providers here as we create them
         // ChangeNotifierProvider(create: (_) => AccessibilityProvider()),
         // ChangeNotifierProvider(create: (_) => SettingsProvider()),
       ],
-      child: Consumer2<TTSProvider, BluetoothProvider>(
-        builder: (context, ttsProvider, bluetoothProvider, child) {
+      child: Consumer3<TTSProvider, BluetoothProvider, WebSocketProvider>(
+        builder: (context, ttsProvider, bluetoothProvider, webSocketProvider, child) {
           return MaterialApp(
             // App Configuration
             title: AppConstants.appName,

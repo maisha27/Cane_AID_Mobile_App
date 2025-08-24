@@ -34,6 +34,9 @@ dependencies:
   # HTTP requests (for API calls like RGB → color name)
   http: ^1.4.0
 
+  # WebSocket communication for ESP32 data via laptop bridge
+  web_socket_channel: ^2.4.0
+
   # Location services for GPS
   geolocator: ^13.0.1
   

@@ -4,12 +4,13 @@ import 'package:provider/provider.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/text_styles.dart';
 import '../../../core/theme/dimensions.dart';
+import '../../../core/config/websocket_config.dart';
 import '../../../core/services/color_api_service.dart';
 import '../../widgets/common/accessible_card.dart';
 import '../../widgets/common/accessible_button.dart';
 import '../../providers/tts_provider.dart';
-import '../../providers/bluetooth_provider.dart';
-import '../../../core/services/bluetooth_service.dart';
+import '../../providers/websocket_provider.dart';
+import '../../../core/models/esp32_data.dart';
 import '../../../l10n/generated/app_localizations.dart';
 
 /// Color detection screen for identifying colors using ESP32 color sensor
@@ -55,11 +56,13 @@ class _ColorDetectionScreenState extends State<ColorDetectionScreen> {
   }
 
   void _listenToColorData() {
-    final bluetoothProvider = Provider.of<BluetoothProvider>(context, listen: false);
+    // Listen to WebSocket data stream for real-time color detection
+    final websocketProvider = Provider.of<WebSocketProvider>(context, listen: false);
     
-    // Listen to color data stream
-    bluetoothProvider.dataStream.listen((esp32Data) {
+    // Listen to WebSocket color data stream
+    websocketProvider.dataStream.listen((esp32Data) {
       if (esp32Data.colorData != null && _isDetecting) {
+        debugPrint('Color data received via WebSocket');
         _processColorData(esp32Data.colorData!);
       }
     });
@@ -71,15 +74,15 @@ class _ColorDetectionScreenState extends State<ColorDetectionScreen> {
     setState(() {
       _latestColorData = colorData;
       _currentColor = Color.fromRGBO(
-        colorData.red.toInt(),
-        colorData.green.toInt(),
-        colorData.blue.toInt(),
+        colorData.r,
+        colorData.g,
+        colorData.b,
         1.0,
       );
     });
 
     // Get color name from RGB values
-    final colorName = await _getColorName(colorData.red.toDouble(), colorData.green.toDouble(), colorData.blue.toDouble());
+    final colorName = await _getColorName(colorData.r.toDouble(), colorData.g.toDouble(), colorData.b.toDouble());
     
     if (!mounted) return;
     
@@ -91,7 +94,7 @@ class _ColorDetectionScreenState extends State<ColorDetectionScreen> {
     final detectedColor = DetectedColor(
       name: colorName,
       color: _currentColor,
-      rgbValues: 'RGB(${colorData.red.toInt()}, ${colorData.green.toInt()}, ${colorData.blue.toInt()})',
+      rgbValues: 'RGB(${colorData.r}, ${colorData.g}, ${colorData.b})',
       timestamp: DateTime.now(),
     );
 
@@ -129,25 +132,60 @@ class _ColorDetectionScreenState extends State<ColorDetectionScreen> {
   }
 
   void _toggleDetection() async {
-    final bluetoothProvider = Provider.of<BluetoothProvider>(context, listen: false);
+    final websocketProvider = Provider.of<WebSocketProvider>(context, listen: false);
     final ttsProvider = Provider.of<TTSProvider>(context, listen: false);
 
-    if (!bluetoothProvider.isConnected) {
-      await ttsProvider.speak('Please connect to ESP32 device first');
+    if (_isDetecting) {
+      // Stop detection
+      setState(() {
+        _isDetecting = false;
+      });
+      await ttsProvider.speak('Color detection stopped');
+      HapticFeedback.selectionClick();
       return;
     }
 
-    setState(() {
-      _isDetecting = !_isDetecting;
-    });
-
-    if (_isDetecting) {
-      await ttsProvider.speak('Color detection started');
+    // Smart connection: Try WebSocket first
+    bool connected = false;
+    
+    // Try WebSocket connection (automatic)
+    if (!websocketProvider.isConnected) {
+      await ttsProvider.speak('Connecting to ESP32 server...');
+      connected = await _tryWebSocketConnection(websocketProvider);
     } else {
-      await ttsProvider.speak('Color detection stopped');
+      connected = true;
     }
 
+    // If WebSocket fails, inform user about Bluetooth setup
+    if (!connected) {
+      await ttsProvider.speak('Unable to connect automatically. Please use Bluetooth connection setup first.');
+      return;
+    }
+
+    // Start detection
+    setState(() {
+      _isDetecting = true;
+    });
+    await ttsProvider.speak('Color detection started');
     HapticFeedback.selectionClick();
+  }
+
+  /// Try to connect via WebSocket automatically
+  Future<bool> _tryWebSocketConnection(WebSocketProvider websocketProvider) async {
+    try {
+      // Try default WebSocket URL from configuration
+      final success = await websocketProvider.connectToServer(
+        customUrl: WebSocketConfig.defaultServerUrl
+      );
+      
+      // Wait a moment to check connection
+      await Future.delayed(Duration(seconds: WebSocketConfig.connectionTimeoutSeconds));
+      
+      return success && websocketProvider.isConnected;
+    } catch (e) {
+      debugPrint('Auto WebSocket connection failed: $e');
+      return false;
+    }
   }
 
   void _clearHistory() async {
@@ -186,8 +224,8 @@ class _ColorDetectionScreenState extends State<ColorDetectionScreen> {
         ),
       ),
       body: SafeArea(
-        child: Consumer2<BluetoothProvider, TTSProvider>(
-          builder: (context, bluetoothProvider, ttsProvider, child) {
+        child: Consumer2<WebSocketProvider, TTSProvider>(
+          builder: (context, webSocketProvider, ttsProvider, child) {
             return SingleChildScrollView(
               physics: const BouncingScrollPhysics(),
               padding: const EdgeInsets.all(AppDimensions.paddingMedium),
@@ -195,7 +233,7 @@ class _ColorDetectionScreenState extends State<ColorDetectionScreen> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   // Connection Status
-                  _buildConnectionStatus(bluetoothProvider),
+                  _buildConnectionStatus(webSocketProvider),
                   
                   const SizedBox(height: AppDimensions.marginLarge),
                   
@@ -205,7 +243,7 @@ class _ColorDetectionScreenState extends State<ColorDetectionScreen> {
                   const SizedBox(height: AppDimensions.marginLarge),
                   
                   // Control Buttons
-                  _buildControlButtons(bluetoothProvider),
+                  _buildControlButtons(webSocketProvider),
                   
                   const SizedBox(height: AppDimensions.marginLarge),
                   
@@ -225,16 +263,16 @@ class _ColorDetectionScreenState extends State<ColorDetectionScreen> {
     );
   }
 
-  Widget _buildConnectionStatus(BluetoothProvider bluetoothProvider) {
+  Widget _buildConnectionStatus(WebSocketProvider webSocketProvider) {
     return AccessibleCard(
-      semanticLabel: bluetoothProvider.isConnected 
+      semanticLabel: webSocketProvider.isConnected 
           ? 'ESP32 device connected and ready' 
           : 'ESP32 device not connected',
       child: Row(
         children: [
           Icon(
-            bluetoothProvider.isConnected ? Icons.bluetooth_connected : Icons.bluetooth_disabled,
-            color: bluetoothProvider.isConnected ? AppColors.success : AppColors.error,
+            webSocketProvider.isConnected ? Icons.wifi_outlined : Icons.wifi_off_outlined,
+            color: webSocketProvider.isConnected ? AppColors.success : AppColors.error,
             size: AppDimensions.iconMedium,
           ),
           const SizedBox(width: AppDimensions.marginMedium),
@@ -243,14 +281,14 @@ class _ColorDetectionScreenState extends State<ColorDetectionScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  bluetoothProvider.isConnected ? 'ESP32 Connected' : 'ESP32 Disconnected',
+                  webSocketProvider.isConnected ? 'ESP32 Connected' : 'ESP32 Disconnected',
                   style: AppTextStyles.bodyLarge.copyWith(
                     fontWeight: FontWeight.w600,
-                    color: bluetoothProvider.isConnected ? AppColors.success : AppColors.error,
+                    color: webSocketProvider.isConnected ? AppColors.success : AppColors.error,
                   ),
                 ),
                 Text(
-                  bluetoothProvider.isConnected 
+                  webSocketProvider.isConnected 
                       ? 'Color sensor ready for detection'
                       : 'Connect device to start detection',
                   style: AppTextStyles.bodySmall.copyWith(
@@ -312,7 +350,7 @@ class _ColorDetectionScreenState extends State<ColorDetectionScreen> {
           if (_latestColorData != null) ...[
             const SizedBox(height: AppDimensions.marginSmall),
             Text(
-              'RGB(${_latestColorData!.red.toInt()}, ${_latestColorData!.green.toInt()}, ${_latestColorData!.blue.toInt()})',
+              'RGB(${_latestColorData!.r}, ${_latestColorData!.g}, ${_latestColorData!.b})',
               style: AppTextStyles.bodyMedium.copyWith(
                 color: AppColors.textSecondary,
               ),
@@ -323,14 +361,14 @@ class _ColorDetectionScreenState extends State<ColorDetectionScreen> {
     );
   }
 
-  Widget _buildControlButtons(BluetoothProvider bluetoothProvider) {
+  Widget _buildControlButtons(WebSocketProvider webSocketProvider) {
     final l10n = AppLocalizations.of(context)!;
     
     return Row(
       children: [
         Expanded(
           child: AccessibleButton(
-            onPressed: bluetoothProvider.isConnected ? _toggleDetection : null,
+            onPressed: webSocketProvider.isConnected ? _toggleDetection : null,
             semanticLabel: _isDetecting ? l10n.stopDetection : l10n.startDetection,
             backgroundColor: _isDetecting ? AppColors.error : AppColors.success,
             child: Row(
