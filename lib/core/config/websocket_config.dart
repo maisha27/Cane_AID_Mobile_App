@@ -2,7 +2,7 @@
 class WebSocketConfig {
   /// Default WebSocket server URL
   /// Update this IP address to match your teammate's laptop IP when they run the bridge server
-  static const String defaultServerUrl = 'ws://192.168.0.105:8765';
+  static const String defaultServerUrl = 'ws://192.168.0.102:8765';
 
   /// Connection timeout in seconds
   static const int connectionTimeoutSeconds = 5;
