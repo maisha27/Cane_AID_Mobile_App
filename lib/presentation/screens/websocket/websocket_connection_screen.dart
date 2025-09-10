@@ -10,8 +10,8 @@ import '../../widgets/common/accessible_button.dart';
 import '../../providers/websocket_provider.dart';
 import '../../providers/tts_provider.dart';
 
-/// WebSocket connection screen for ESP32 communication via laptop bridge
-/// Replaces Bluetooth connection screen for server-based connectivity
+/// WebSocket connection screen for Cane AID device communication
+/// Replaces Bluetooth connection screen for direct device connectivity
 class WebSocketConnectionScreen extends StatefulWidget {
   const WebSocketConnectionScreen({super.key});
 
@@ -38,14 +38,11 @@ class _WebSocketConnectionScreenState extends State<WebSocketConnectionScreen> {
 
   void _announceScreenEntry() async {
     try {
-      final l10n = AppLocalizations.of(context);
-      if (l10n != null) {
-        final ttsProvider = Provider.of<TTSProvider>(context, listen: false);
-        await ttsProvider.announceScreenEntry(l10n.bluetoothConnectionScreen);
-        
-        await Future.delayed(const Duration(milliseconds: 1000));
-        await ttsProvider.speak('Connect to ESP32 server on laptop');
-      }
+      final ttsProvider = Provider.of<TTSProvider>(context, listen: false);
+      await ttsProvider.announceScreenEntry('Connection to Cane AID Screen');
+      
+      await Future.delayed(const Duration(milliseconds: 1000));
+      await ttsProvider.speak('Connect to your Cane AID device');
     } catch (e) {
       debugPrint('TTS announcement error: $e');
     }
@@ -72,7 +69,7 @@ class _WebSocketConnectionScreenState extends State<WebSocketConnectionScreen> {
       backgroundColor: AppColors.backgroundLight,
       appBar: AppBar(
         title: Text(
-          'ESP32 Server Connection',
+          'Connection to Cane_AID',
           style: AppTextStyles.heading4.copyWith(
             color: AppColors.textLight,
           ),
@@ -142,10 +139,6 @@ class _WebSocketConnectionScreenState extends State<WebSocketConnectionScreen> {
       statusColor = AppColors.success;
       statusIcon = Icons.wifi;
       statusText = l10n.connected;
-    } else if (wsProvider.isConnecting) {
-      statusColor = AppColors.warning;
-      statusIcon = Icons.wifi_off;
-      statusText = 'Connecting...';
     } else {
       statusColor = AppColors.error;
       statusIcon = Icons.wifi_off;
@@ -306,9 +299,7 @@ class _WebSocketConnectionScreenState extends State<WebSocketConnectionScreen> {
       children: [
         Expanded(
           child: AccessibleButton(
-            onPressed: wsProvider.isConnecting
-                ? null
-                : () => _connectToServer(wsProvider),
+            onPressed: () => _connectToServer(wsProvider),
             backgroundColor: wsProvider.isConnected
                 ? AppColors.warning
                 : AppColors.primary,
@@ -318,9 +309,7 @@ class _WebSocketConnectionScreenState extends State<WebSocketConnectionScreen> {
             child: Text(
               wsProvider.isConnected
                   ? 'Reconnect'
-                  : wsProvider.isConnecting
-                      ? 'Connecting...'
-                      : 'Connect',
+                  : 'Connect',
               style: AppTextStyles.buttonMedium,
             ),
           ),
@@ -354,14 +343,19 @@ class _WebSocketConnectionScreenState extends State<WebSocketConnectionScreen> {
           ),
           const SizedBox(height: AppDimensions.marginMedium),
           
-          if (wsProvider.latestData != null) ...[
+          if (wsProvider.data != null) ...[
             Text(
-              wsProvider.getDataSummary(),
+              wsProvider.rgbString,
               style: AppTextStyles.bodyMedium,
             ),
             const SizedBox(height: AppDimensions.marginSmall),
             Text(
-              'Received: ${wsProvider.latestData!.timestamp}',
+              'Distance: ${wsProvider.distance?.toStringAsFixed(1) ?? 'N/A'} cm',
+              style: AppTextStyles.bodyMedium,
+            ),
+            const SizedBox(height: AppDimensions.marginSmall),
+            Text(
+              'Location: ${wsProvider.coordinatesString}',
               style: AppTextStyles.bodySmall.copyWith(
                 color: AppColors.textSecondary,
               ),
@@ -370,28 +364,28 @@ class _WebSocketConnectionScreenState extends State<WebSocketConnectionScreen> {
             const SizedBox(height: AppDimensions.marginMedium),
             
             // Individual sensor data
-            if (wsProvider.latestColorData != null) ...[
+            if (wsProvider.r != null && wsProvider.g != null && wsProvider.b != null) ...[
               _buildSensorDataRow(
                 'Color',
-                'RGB(${wsProvider.latestColorData!.r}, ${wsProvider.latestColorData!.g}, ${wsProvider.latestColorData!.b})',
+                'RGB(${wsProvider.r}, ${wsProvider.g}, ${wsProvider.b})',
                 Icons.palette,
                 AppColors.primary,
               ),
             ],
             
-            if (wsProvider.latestDistanceData != null) ...[
+            if (wsProvider.distance != null) ...[
               _buildSensorDataRow(
                 'Distance',
-                '${wsProvider.latestDistanceData!.distance.toStringAsFixed(1)} cm',
+                '${wsProvider.distance!.toStringAsFixed(1)} cm',
                 Icons.straighten,
                 AppColors.warning,
               ),
             ],
             
-            if (wsProvider.latestGPSData != null) ...[
+            if (wsProvider.latitude != null && wsProvider.longitude != null) ...[
               _buildSensorDataRow(
                 'Location',
-                wsProvider.latestGPSData!.coordinatesString,
+                wsProvider.coordinatesString,
                 Icons.location_on,
                 AppColors.success,
               ),
@@ -552,10 +546,6 @@ class _WebSocketConnectionScreenState extends State<WebSocketConnectionScreen> {
       String serverUrl = _isCustomUrl 
           ? _serverUrlController.text.trim()
           : wsProvider.serverUrl ?? 'ws://192.168.1.100:8080/cane-aid';
-      
-      if (_isCustomUrl) {
-        wsProvider.updateServerUrl(serverUrl);
-      }
       
       final success = await wsProvider.connectToServer(
         customUrl: _isCustomUrl ? serverUrl : null,

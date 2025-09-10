@@ -13,15 +13,8 @@ class AppRoutes {
   static const String colorDetection = '/color-detection';
   static const String distanceDetection = '/distance-detection';
   static const String location = '/location';
-  static const String bluetooth = '/bluetooth';
   static const String websocket = '/websocket';
   static const String websocketTest = '/websocket-test';
-
-  // Settings Routes
-  static const String settings = '/settings';
-  static const String voiceSettings = '/settings/voice';
-  static const String caretakerSettings = '/settings/caretaker';
-  static const String accessibilitySettings = '/settings/accessibility';
 
   // Help Routes
   static const String help = '/help';
@@ -37,13 +30,8 @@ class AppRoutes {
     colorDetection,
     distanceDetection,
     location,
-    bluetooth,
     websocket,
     websocketTest,
-    settings,
-    voiceSettings,
-    caretakerSettings,
-    accessibilitySettings,
     help,
     tutorial,
   ];

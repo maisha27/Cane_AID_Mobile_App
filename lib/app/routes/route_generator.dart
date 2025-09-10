@@ -4,11 +4,9 @@ import 'app_routes.dart';
 // Import screens
 import '../../presentation/screens/splash/splash_screen.dart';
 import '../../presentation/screens/home/home_screen.dart';
-import '../../presentation/screens/settings/settings_screen.dart';
-import '../../presentation/screens/bluetooth/bluetooth_connection_screen.dart';
 import '../../presentation/screens/websocket/websocket_test_screen.dart';
 import '../../presentation/screens/websocket/websocket_connection_screen.dart';
-import '../../presentation/screens/color_detection/color_detection_screen.dart';
+// Disabled: import '../../presentation/screens/color_detection/color_detection_screen.dart';
 import '../../presentation/screens/distance/distance_detection_screen.dart';
 import '../../presentation/screens/location/location_screen.dart';
 // import '../../presentation/screens/onboarding/welcome_screen.dart';
@@ -56,8 +54,10 @@ class RouteGenerator {
         );
 
       case AppRoutes.colorDetection:
+        // DISABLED: Color detection now handled in-place on home screen
+        debugPrint('⚠️ WARNING: Old colorDetection route called! This should not happen.');
         return _createRoute(
-          const ColorDetectionScreen(),
+          _placeholderScreen('Color Detection - Use Home Screen Animation'),
           settings,
         );
 
@@ -73,12 +73,6 @@ class RouteGenerator {
           settings,
         );
 
-      case AppRoutes.bluetooth:
-        return _createRoute(
-          const BluetoothConnectionScreen(),
-          settings,
-        );
-
       case AppRoutes.websocket:
         return _createRoute(
           const WebSocketConnectionScreen(),
@@ -88,33 +82,6 @@ class RouteGenerator {
       case AppRoutes.websocketTest:
         return _createRoute(
           const WebSocketTestScreen(),
-          settings,
-        );
-
-      case AppRoutes.settings:
-        return _createRoute(
-          const SettingsScreen(),
-          settings,
-        );
-
-      case AppRoutes.voiceSettings:
-        return _createRoute(
-          // VoiceSettingsScreen(), // Will be created next
-          _placeholderScreen('Voice Settings Screen'),
-          settings,
-        );
-
-      case AppRoutes.caretakerSettings:
-        return _createRoute(
-          // CaretakerSettingsScreen(), // Will be created next
-          _placeholderScreen('Caretaker Settings Screen'),
-          settings,
-        );
-
-      case AppRoutes.accessibilitySettings:
-        return _createRoute(
-          // AccessibilitySettingsScreen(), // Will be created next
-          _placeholderScreen('Accessibility Settings Screen'),
           settings,
         );
 

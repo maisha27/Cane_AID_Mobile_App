@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/cupertino.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:provider/provider.dart';
@@ -7,7 +6,6 @@ import 'package:provider/provider.dart';
 import '../core/theme/app_theme.dart';
 import '../core/constants/app_constants.dart';
 import '../presentation/providers/tts_provider.dart';
-import '../presentation/providers/bluetooth_provider.dart';
 import '../presentation/providers/websocket_provider.dart';
 import 'routes/app_routes.dart';
 import 'routes/route_generator.dart';
@@ -31,20 +29,16 @@ class CaneAidApp extends StatelessWidget {
         ChangeNotifierProvider(
           create: (_) => TTSProvider()..initialize(),
         ),
-        // Bluetooth Provider for ESP32 communication (legacy)
+        // WebSocket Provider for ESP32 communication - simplified
         ChangeNotifierProvider(
-          create: (_) => BluetoothProvider()..initialize(),
-        ),
-        // WebSocket Provider for ESP32 communication via laptop bridge
-        ChangeNotifierProvider(
-          create: (_) => WebSocketProvider()..initialize(),
+          create: (_) => WebSocketProvider(),
         ),
         // Will add more providers here as we create them
         // ChangeNotifierProvider(create: (_) => AccessibilityProvider()),
         // ChangeNotifierProvider(create: (_) => SettingsProvider()),
       ],
-      child: Consumer3<TTSProvider, BluetoothProvider, WebSocketProvider>(
-        builder: (context, ttsProvider, bluetoothProvider, webSocketProvider, child) {
+      child: Consumer2<TTSProvider, WebSocketProvider>(
+        builder: (context, ttsProvider, webSocketProvider, child) {
           return MaterialApp(
             // App Configuration
             title: AppConstants.appName,
@@ -59,7 +53,7 @@ class CaneAidApp extends StatelessWidget {
             // Localization Configuration
             locale: const Locale('en'),
             supportedLocales: const [Locale('en')],
-            localizationsDelegates: [
+            localizationsDelegates: const [
               AppLocalizations.delegate,
               GlobalMaterialLocalizations.delegate,
               GlobalWidgetsLocalizations.delegate,

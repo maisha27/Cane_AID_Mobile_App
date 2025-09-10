@@ -4,13 +4,11 @@ import 'package:provider/provider.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/text_styles.dart';
 import '../../../core/theme/dimensions.dart';
-import '../../../core/config/websocket_config.dart';
 import '../../../core/services/color_api_service.dart';
 import '../../widgets/common/accessible_card.dart';
 import '../../widgets/common/accessible_button.dart';
 import '../../providers/tts_provider.dart';
 import '../../providers/websocket_provider.dart';
-import '../../../core/models/esp32_data.dart';
 import '../../../l10n/generated/app_localizations.dart';
 
 /// Color detection screen for identifying colors using ESP32 color sensor
@@ -25,7 +23,9 @@ class ColorDetectionScreen extends StatefulWidget {
 class _ColorDetectionScreenState extends State<ColorDetectionScreen> {
   String _currentColorName = 'No color detected';
   Color _currentColor = Colors.grey;
-  ColorData? _latestColorData;
+  int _latestR = 0;
+  int _latestG = 0;
+  int _latestB = 0;
   bool _isDetecting = false;
   final List<DetectedColor> _colorHistory = [];
 
@@ -56,33 +56,22 @@ class _ColorDetectionScreenState extends State<ColorDetectionScreen> {
   }
 
   void _listenToColorData() {
-    // Listen to WebSocket data stream for real-time color detection
-    final websocketProvider = Provider.of<WebSocketProvider>(context, listen: false);
-    
-    // Listen to WebSocket color data stream
-    websocketProvider.dataStream.listen((esp32Data) {
-      if (esp32Data.colorData != null && _isDetecting) {
-        debugPrint('Color data received via WebSocket');
-        _processColorData(esp32Data.colorData!);
-      }
-    });
+    // Simple pattern - data will be accessed directly from provider in Consumer widget
+    // No complex stream subscription needed like the sample code
   }
 
-  void _processColorData(ColorData colorData) async {
+  void _processColorData(int r, int g, int b) async {
     if (!mounted) return;
     
     setState(() {
-      _latestColorData = colorData;
-      _currentColor = Color.fromRGBO(
-        colorData.r,
-        colorData.g,
-        colorData.b,
-        1.0,
-      );
+      _latestR = r;
+      _latestG = g;
+      _latestB = b;
+      _currentColor = Color.fromRGBO(r, g, b, 1.0);
     });
 
     // Get color name from RGB values
-    final colorName = await _getColorName(colorData.r.toDouble(), colorData.g.toDouble(), colorData.b.toDouble());
+    final colorName = await _getColorName(r.toDouble(), g.toDouble(), b.toDouble());
     
     if (!mounted) return;
     
@@ -94,7 +83,7 @@ class _ColorDetectionScreenState extends State<ColorDetectionScreen> {
     final detectedColor = DetectedColor(
       name: colorName,
       color: _currentColor,
-      rgbValues: 'RGB(${colorData.r}, ${colorData.g}, ${colorData.b})',
+      rgbValues: 'RGB($_latestR, $_latestG, $_latestB)',
       timestamp: DateTime.now(),
     );
 
@@ -114,6 +103,17 @@ class _ColorDetectionScreenState extends State<ColorDetectionScreen> {
     
     // Haptic feedback
     HapticFeedback.mediumImpact();
+  }
+
+  // New method to process data from WebSocket provider - like your sample pattern
+  void _processColorDataFromProvider(Map<String, dynamic> data) {
+    if (!_isDetecting) return;
+    
+    final r = data['r'] ?? 0;
+    final g = data['g'] ?? 0;
+    final b = data['b'] ?? 0;
+    
+    _processColorData(r, g, b);
   }
 
   Future<String> _getColorName(double red, double green, double blue) async {
@@ -151,14 +151,14 @@ class _ColorDetectionScreenState extends State<ColorDetectionScreen> {
     // Try WebSocket connection (automatic)
     if (!websocketProvider.isConnected) {
       await ttsProvider.speak('Connecting to ESP32 server...');
-      connected = await _tryWebSocketConnection(websocketProvider);
+      connected = await websocketProvider.connectToServer();
     } else {
       connected = true;
     }
 
-    // If WebSocket fails, inform user about Bluetooth setup
+    // If WebSocket fails, inform user about connection setup
     if (!connected) {
-      await ttsProvider.speak('Unable to connect automatically. Please use Bluetooth connection setup first.');
+      await ttsProvider.speak('Unable to connect automatically. Please check your connection setup.');
       return;
     }
 
@@ -168,24 +168,6 @@ class _ColorDetectionScreenState extends State<ColorDetectionScreen> {
     });
     await ttsProvider.speak('Color detection started');
     HapticFeedback.selectionClick();
-  }
-
-  /// Try to connect via WebSocket automatically
-  Future<bool> _tryWebSocketConnection(WebSocketProvider websocketProvider) async {
-    try {
-      // Try default WebSocket URL from configuration
-      final success = await websocketProvider.connectToServer(
-        customUrl: WebSocketConfig.defaultServerUrl
-      );
-      
-      // Wait a moment to check connection
-      await Future.delayed(Duration(seconds: WebSocketConfig.connectionTimeoutSeconds));
-      
-      return success && websocketProvider.isConnected;
-    } catch (e) {
-      debugPrint('Auto WebSocket connection failed: $e');
-      return false;
-    }
   }
 
   void _clearHistory() async {
@@ -224,8 +206,16 @@ class _ColorDetectionScreenState extends State<ColorDetectionScreen> {
         ),
       ),
       body: SafeArea(
-        child: Consumer2<WebSocketProvider, TTSProvider>(
-          builder: (context, webSocketProvider, ttsProvider, child) {
+        child: Consumer<WebSocketProvider>(
+          builder: (context, webSocketProvider, child) {
+            // Auto-update color data when WebSocket receives new data - like your sample
+            if (webSocketProvider.data != null && _isDetecting) {
+              final data = webSocketProvider.data!;
+              WidgetsBinding.instance.addPostFrameCallback((_) {
+                _processColorDataFromProvider(data);
+              });
+            }
+            
             return SingleChildScrollView(
               physics: const BouncingScrollPhysics(),
               padding: const EdgeInsets.all(AppDimensions.paddingMedium),
@@ -347,10 +337,10 @@ class _ColorDetectionScreenState extends State<ColorDetectionScreen> {
             textAlign: TextAlign.center,
           ),
           
-          if (_latestColorData != null) ...[
+          if (_latestR != 0 || _latestG != 0 || _latestB != 0) ...[
             const SizedBox(height: AppDimensions.marginSmall),
             Text(
-              'RGB(${_latestColorData!.r}, ${_latestColorData!.g}, ${_latestColorData!.b})',
+              'RGB($_latestR, $_latestG, $_latestB)',
               style: AppTextStyles.bodyMedium.copyWith(
                 color: AppColors.textSecondary,
               ),

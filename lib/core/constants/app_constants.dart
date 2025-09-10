@@ -29,14 +29,8 @@ class AppConstants {
   static const String storageFirstLaunchKey = 'first_launch';
   static const String storagePermissionsGrantedKey = 'permissions_granted';
 
-  // Bluetooth Configuration
-  static const int bluetoothScanTimeoutSeconds = 30;
-  static const int bluetoothConnectionTimeoutSeconds = 15;
-  static const int bluetoothReconnectAttempts = 3;
-  static const int bluetoothReconnectDelaySeconds = 5;
-
   // WebSocket Configuration (new)
-  static const String websocketServerUrl = 'ws://192.168.1.100:8080/cane-aid';
+  static const String websocketServerUrl = 'ws://192.168.0.102:8765';
   static const int websocketTimeoutSeconds = 10;
   static const int websocketReconnectAttempts = 5;
   static const int websocketReconnectDelaySeconds = 3;
@@ -84,8 +78,6 @@ class AppConstants {
   static const int splashScreenDurationMs = 3000;
 
   // Error Messages
-  static const String errorBluetoothNotAvailable = 'Bluetooth not available';
-  static const String errorBluetoothNotEnabled = 'Bluetooth not enabled';
   static const String errorLocationNotAvailable = 'Location services not available';
   static const String errorLocationPermissionDenied = 'Location permission denied';
   static const String errorMicrophonePermissionDenied = 'Microphone permission denied';
@@ -102,9 +94,7 @@ class AppConstants {
   static const String errorWebSocketAuthenticationFailed = 'Server authentication failed';
 
   // Success Messages
-  static const String successBluetoothConnected = 'Bluetooth connected successfully';
   static const String successLocationShared = 'Location shared with caretaker';
-  static const String successSettingsSaved = 'Settings saved successfully';
 
   // WebSocket Success Messages (new)
   static const String successWebSocketConnected = 'Connected to ESP32 server successfully';
@@ -122,9 +112,6 @@ class AppConstants {
 
   // Permissions
   static const List<String> requiredPermissions = [
-    'bluetooth',
-    'bluetoothConnect',
-    'bluetoothScan',
     'location',
     'locationWhenInUse',
     'microphone',

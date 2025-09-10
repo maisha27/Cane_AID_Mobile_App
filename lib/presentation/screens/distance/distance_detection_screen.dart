@@ -4,15 +4,13 @@ import 'package:provider/provider.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/text_styles.dart';
 import '../../../core/theme/dimensions.dart';
-import '../../../core/config/websocket_config.dart';
 import '../../../l10n/generated/app_localizations.dart';
 import '../../widgets/common/accessible_card.dart';
 import '../../providers/tts_provider.dart';
 import '../../providers/websocket_provider.dart';
-import '../../../core/models/esp32_data.dart';
 
-/// Distance Detection screen for real-time obstacle detection
-/// Uses ultrasonic sensor data from ESP32 to measure distances and provide voice alerts
+/// Obstacle Detection screen for real-time obstacle detection
+/// Uses ultrasonic sensor data from ESP32 via WebSocket to measure distances and provide voice alerts
 class DistanceDetectionScreen extends StatefulWidget {
   const DistanceDetectionScreen({super.key});
 
@@ -29,31 +27,17 @@ class _DistanceDetectionScreenState extends State<DistanceDetectionScreen> {
   @override
   void initState() {
     super.initState();
-    _listenToDistanceData();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _announceScreenEntry();
     });
   }
 
-  void _listenToDistanceData() {
-    // For Phase 2, focus on WebSocket provider only
-    // TODO: Update BluetoothProvider to use unified ESP32Data model in Phase 3
-    final websocketProvider = Provider.of<WebSocketProvider>(context, listen: false);
-    
-    // Listen to WebSocket distance data stream
-    websocketProvider.dataStream.listen((esp32Data) {
-      if (esp32Data.distanceData != null && _isDetecting) {
-        _processDistanceData(esp32Data.distanceData!);
-      }
-    });
-  }
-
-  void _processDistanceData(DistanceData distanceData) async {
+  void _processDistanceData(double distance) async {
     if (!mounted) return;
     
     final oldDistance = _currentDistance;
     setState(() {
-      _currentDistance = distanceData.distance;
+      _currentDistance = distance;
       _distanceStatus = _isDetecting ? 'Detecting' : 'Ready';
     });
     
@@ -65,14 +49,11 @@ class _DistanceDetectionScreenState extends State<DistanceDetectionScreen> {
     if (!mounted) return;
     
     try {
-      final l10n = AppLocalizations.of(context);
-      if (l10n != null) {
-        final ttsProvider = Provider.of<TTSProvider>(context, listen: false);
-        await ttsProvider.announceScreenEntry(l10n.distanceDetectionScreen);
-        
-        await Future.delayed(const Duration(milliseconds: 1000));
-        await ttsProvider.speak(l10n.realTimeDistanceMeasurement);
-      }
+      final ttsProvider = Provider.of<TTSProvider>(context, listen: false);
+      await ttsProvider.announceScreenEntry('Obstacle Detection Screen');
+      
+      await Future.delayed(const Duration(milliseconds: 1000));
+      await ttsProvider.speak('Real-time obstacle detection using sensors');
     } catch (e) {
       debugPrint('TTS announcement error: $e');
     }
@@ -102,7 +83,7 @@ class _DistanceDetectionScreenState extends State<DistanceDetectionScreen> {
     // Try WebSocket connection (automatic)
     if (!websocketProvider.isConnected) {
       await ttsProvider.speak('Connecting to ESP32 server...');
-      connected = await _tryWebSocketConnection(websocketProvider);
+      connected = await websocketProvider.connectToServer();
     } else {
       connected = true;
     }
@@ -121,24 +102,6 @@ class _DistanceDetectionScreenState extends State<DistanceDetectionScreen> {
     });
     await ttsProvider.speak('Distance detection started');
     HapticFeedback.heavyImpact();
-  }
-
-  /// Try to connect via WebSocket automatically
-  Future<bool> _tryWebSocketConnection(WebSocketProvider websocketProvider) async {
-    try {
-      // Try default WebSocket URL from configuration
-      final success = await websocketProvider.connectToServer(
-        customUrl: WebSocketConfig.defaultServerUrl
-      );
-      
-      // Wait a moment to check connection
-      await Future.delayed(Duration(seconds: WebSocketConfig.connectionTimeoutSeconds));
-      
-      return success && websocketProvider.isConnected;
-    } catch (e) {
-      debugPrint('Auto WebSocket connection failed: $e');
-      return false;
-    }
   }
 
   /// Start simulation mode when no ESP32 connection available
@@ -232,7 +195,7 @@ class _DistanceDetectionScreenState extends State<DistanceDetectionScreen> {
       backgroundColor: AppColors.backgroundLight,
       appBar: AppBar(
         title: Text(
-          l10n.distanceDetection,
+          'Obstacle Detection',
           style: AppTextStyles.heading4.copyWith(
             color: AppColors.textLight,
           ),
@@ -247,12 +210,24 @@ class _DistanceDetectionScreenState extends State<DistanceDetectionScreen> {
       ),
       body: SafeArea(
         child: Semantics(
-          label: '${l10n.distanceDetectionScreen}. ${l10n.realTimeDistanceMeasurement}',
-          child: SingleChildScrollView(
-            padding: const EdgeInsets.all(AppDimensions.paddingMedium),
-            child: Column(
-              children: [
-                // Distance Display Card
+          label: 'Obstacle Detection Screen. Real-time obstacle detection using sensors',
+          child: Consumer<WebSocketProvider>(
+            builder: (context, websocketProvider, child) {
+              // Update distance from WebSocket data when detecting
+              if (_isDetecting && websocketProvider.data != null) {
+                final newDistance = (websocketProvider.distance ?? _currentDistance);
+                if (newDistance != _currentDistance) {
+                  WidgetsBinding.instance.addPostFrameCallback((_) {
+                    _processDistanceData(newDistance);
+                  });
+                }
+              }
+              
+              return SingleChildScrollView(
+                padding: const EdgeInsets.all(AppDimensions.paddingMedium),
+                child: Column(
+                  children: [
+                    // Distance Display Card
                 AccessibleCard(
                   child: Column(
                     children: [
@@ -305,7 +280,7 @@ class _DistanceDetectionScreenState extends State<DistanceDetectionScreen> {
                       ),
                     ),
                     child: Text(
-                      _isDetecting ? l10n.stop : l10n.start,
+                      _isDetecting ? 'Stop' : 'Start',
                       style: AppTextStyles.heading4.copyWith(
                         color: AppColors.textLight,
                       ),
@@ -321,17 +296,17 @@ class _DistanceDetectionScreenState extends State<DistanceDetectionScreen> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        l10n.instructions,
+                        'Instructions',
                         style: AppTextStyles.heading4.copyWith(
                           color: AppColors.textDark,
                         ),
                       ),
                       const SizedBox(height: AppDimensions.marginSmall),
                       Text(
-                        '• Point your cane forward\n'
-                        '• Press Start to begin detection\n'
-                        '• Listen for voice distance alerts\n'
-                        '• Feel haptic feedback for obstacles\n'
+                        '• Point your device forward\n'
+                        '• Press Start to begin obstacle detection\n'
+                        '• Listen for voice obstacle alerts\n'
+                        '• Feel haptic feedback for nearby obstacles\n'
                         '• Red: Very close (<30cm)\n'
                         '• Orange: Close (30-60cm)\n'
                         '• Yellow: Medium (60-100cm)\n'
@@ -343,8 +318,10 @@ class _DistanceDetectionScreenState extends State<DistanceDetectionScreen> {
                     ],
                   ),
                 ),
-              ],
-            ),
+                  ],
+                ),
+              );
+            },
           ),
         ),
       ),

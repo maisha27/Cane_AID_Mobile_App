@@ -73,6 +73,7 @@ class AccessibleCard extends StatelessWidget {
   }
 
   void _handleTap(BuildContext context) {
+    debugPrint('🔍 DEBUG: AccessibleCard._handleTap() called with semanticLabel: $semanticLabel');
     if (onTap != null) {
       // Provide haptic feedback
       HapticFeedback.lightImpact();
@@ -83,7 +84,9 @@ class AccessibleCard extends StatelessWidget {
         ttsProvider.announceButtonPress(semanticLabel!);
       }
       
+      debugPrint('🔍 DEBUG: AccessibleCard calling onTap callback');
       onTap!();
+      debugPrint('🔍 DEBUG: AccessibleCard onTap callback completed');
     }
   }
 }

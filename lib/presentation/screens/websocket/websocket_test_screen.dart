@@ -96,16 +96,14 @@ class _WebSocketTestScreenState extends State<WebSocketTestScreen> {
                             decoration: BoxDecoration(
                               color: wsProvider.isConnected
                                   ? Colors.green
-                                  : wsProvider.isConnecting
-                                      ? Colors.orange
-                                      : Colors.red,
+                                  : Colors.red,
                               shape: BoxShape.circle,
                             ),
                           ),
                           const SizedBox(width: AppDimensions.marginSmall),
                           Expanded(
                             child: Text(
-                              wsProvider.getConnectionStatusText(),
+                              wsProvider.isConnected ? 'Connected' : 'Disconnected',
                               style: AppTextStyles.bodyMedium,
                             ),
                           ),
@@ -131,18 +129,14 @@ class _WebSocketTestScreenState extends State<WebSocketTestScreen> {
                   children: [
                     Expanded(
                       child: AccessibleButton(
-                        onPressed: wsProvider.isConnecting
-                            ? null
-                            : () => _connectToServer(wsProvider),
+                        onPressed: () => _connectToServer(wsProvider),
                         backgroundColor: wsProvider.isConnected
                             ? Colors.orange
                             : AppColors.primary,
                         child: Text(
                           wsProvider.isConnected
                               ? 'Reconnect'
-                              : wsProvider.isConnecting
-                                  ? 'Connecting...'
-                                  : 'Connect',
+                              : 'Connect',
                           style: AppTextStyles.buttonMedium,
                         ),
                       ),
@@ -189,13 +183,13 @@ class _WebSocketTestScreenState extends State<WebSocketTestScreen> {
                       ),
                       const SizedBox(height: AppDimensions.marginSmall),
                       Text(
-                        wsProvider.getDataSummary(),
+                        wsProvider.data != null ? wsProvider.rgbString : 'No data',
                         style: AppTextStyles.bodyMedium,
                       ),
-                      if (wsProvider.latestData != null) ...[
+                      if (wsProvider.data != null) ...[
                         const SizedBox(height: AppDimensions.marginSmall),
                         Text(
-                          'Received: ${wsProvider.latestData!.timestamp}',
+                          'Distance: ${wsProvider.distance?.toStringAsFixed(1) ?? 'N/A'} cm',
                           style: AppTextStyles.bodySmall,
                         ),
                       ],

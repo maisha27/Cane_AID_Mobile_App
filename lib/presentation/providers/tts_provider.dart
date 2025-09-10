@@ -273,11 +273,6 @@ class TTSProvider extends ChangeNotifier {
     await speak(message);
   }
 
-  Future<void> announceBluetoothStatus(bool connected) async {
-    String message = connected ? 'Bluetooth connected' : 'Bluetooth disconnected';
-    await speak(message, interrupt: true);
-  }
-
   /// Test TTS with current settings
   Future<void> testSpeech() async {
     String testMessage = 'This is a test message';

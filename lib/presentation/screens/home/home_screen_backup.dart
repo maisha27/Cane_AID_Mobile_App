@@ -4,12 +4,9 @@ import 'package:provider/provider.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/text_styles.dart';
 import '../../../core/theme/dimensions.dart';
+import '../../../app/routes/app_routes.dart';
 import '../../providers/tts_provider.dart';
 import '../../../l10n/generated/app_localizations.dart';
-import 'widgets/sections/color_detection_section.dart';
-import 'widgets/sections/obstacle_detection_section.dart';
-import 'widgets/sections/location_services_section.dart';
-import 'widgets/sections/connection_status_section.dart';
 
 /// Main dashboard screen with voice-guided navigation
 /// Provides access to all app features with accessibility support
@@ -20,80 +17,11 @@ class HomeScreen extends StatefulWidget {
   State<HomeScreen> createState() => _HomeScreenState();
 }
 
-class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
-  bool _isColorDetectionExpanded = false;
-  bool _isObstacleDetectionExpanded = false;
-  bool _isLocationServicesExpanded = false;
-  bool _isConnectionStatusExpanded = false;
-  
+class _HomeScreenState extends State<HomeScreen> {
   @override
   void initState() {
     super.initState();
     _announceScreenEntry();
-  }
-
-  void _toggleColorDetection() {
-    debugPrint('🔍 DEBUG: _toggleColorDetection() called - current expanded state: $_isColorDetectionExpanded');
-    setState(() {
-      _isColorDetectionExpanded = !_isColorDetectionExpanded;
-    });
-    debugPrint('🔍 DEBUG: _toggleColorDetection() finished - new expanded state: $_isColorDetectionExpanded');
-    HapticFeedback.lightImpact();
-  }
-
-  void _collapseColorDetection() {
-    debugPrint('🔍 DEBUG: _collapseColorDetection() called');
-    setState(() {
-      _isColorDetectionExpanded = false;
-    });
-  }
-
-  void _toggleObstacleDetection() {
-    debugPrint('🔍 DEBUG: _toggleObstacleDetection() called - current expanded state: $_isObstacleDetectionExpanded');
-    setState(() {
-      _isObstacleDetectionExpanded = !_isObstacleDetectionExpanded;
-    });
-    debugPrint('🔍 DEBUG: _toggleObstacleDetection() finished - new expanded state: $_isObstacleDetectionExpanded');
-    HapticFeedback.lightImpact();
-  }
-
-  void _collapseObstacleDetection() {
-    debugPrint('🔍 DEBUG: _collapseObstacleDetection() called');
-    setState(() {
-      _isObstacleDetectionExpanded = false;
-    });
-  }
-
-  void _toggleLocationServices() {
-    debugPrint('🔍 DEBUG: _toggleLocationServices() called - current expanded state: $_isLocationServicesExpanded');
-    setState(() {
-      _isLocationServicesExpanded = !_isLocationServicesExpanded;
-    });
-    debugPrint('🔍 DEBUG: _toggleLocationServices() finished - new expanded state: $_isLocationServicesExpanded');
-    HapticFeedback.lightImpact();
-  }
-
-  void _collapseLocationServices() {
-    debugPrint('🔍 DEBUG: _collapseLocationServices() called');
-    setState(() {
-      _isLocationServicesExpanded = false;
-    });
-  }
-
-  void _toggleConnectionStatus() {
-    debugPrint('🔍 DEBUG: _toggleConnectionStatus() called - current expanded state: $_isConnectionStatusExpanded');
-    setState(() {
-      _isConnectionStatusExpanded = !_isConnectionStatusExpanded;
-    });
-    debugPrint('🔍 DEBUG: _toggleConnectionStatus() finished - new expanded state: $_isConnectionStatusExpanded');
-    HapticFeedback.lightImpact();
-  }
-
-  void _collapseConnectionStatus() {
-    debugPrint('🔍 DEBUG: _collapseConnectionStatus() called');
-    setState(() {
-      _isConnectionStatusExpanded = false;
-    });
   }
 
   void _announceScreenEntry() async {
@@ -167,12 +95,14 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
               Expanded(
                 child: Row(
                   children: [
-                    // Top Left - Color Detection (Smart Section)
+                    // Top Left - Color Detection
                     Expanded(
-                      child: ColorDetectionSection(
-                        isExpanded: _isColorDetectionExpanded,
-                        onTap: _toggleColorDetection,
-                        onCollapse: _collapseColorDetection,
+                      child: _buildFullSectionCard(
+                        icon: Icons.color_lens,
+                        title: l10n.colorDetection,
+                        subtitle: l10n.colorDetectionSubtitle,
+                        onTap: () => Navigator.pushNamed(context, AppRoutes.colorDetection),
+                        semanticLabel: '${l10n.colorDetection} feature. ${l10n.colorDetectionSubtitle}.',
                       ),
                     ),
                     // Vertical divider
@@ -180,12 +110,14 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                       width: 2,
                       color: AppColors.primary.withValues(alpha: 0.3),
                     ),
-                    // Top Right - Obstacle Detection (Smart Section)
+                    // Top Right - Obstacle Detection (renamed from Distance Detection)
                     Expanded(
-                      child: ObstacleDetectionSection(
-                        isExpanded: _isObstacleDetectionExpanded,
-                        onTap: _toggleObstacleDetection,
-                        onCollapse: _collapseObstacleDetection,
+                      child: _buildFullSectionCard(
+                        icon: Icons.radar,
+                        title: 'Obstacle Detection',
+                        subtitle: 'Real-time obstacle detection using sensors',
+                        onTap: () => Navigator.pushNamed(context, AppRoutes.distanceDetection),
+                        semanticLabel: 'Obstacle Detection feature. Real-time obstacle detection using sensors.',
                       ),
                     ),
                   ],
@@ -200,12 +132,14 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
               Expanded(
                 child: Row(
                   children: [
-                    // Bottom Left - Connection Status (Smart Section)
+                    // Bottom Left - Connection to Cane_AID (replaced Bluetooth)
                     Expanded(
-                      child: ConnectionStatusSection(
-                        isExpanded: _isConnectionStatusExpanded,
-                        onTap: _toggleConnectionStatus,
-                        onCollapse: _collapseConnectionStatus,
+                      child: _buildFullSectionCard(
+                        icon: Icons.wifi,
+                        title: 'Connection to Cane_AID',
+                        subtitle: 'Connect to your Cane AID device',
+                        onTap: () => Navigator.pushNamed(context, AppRoutes.websocket),
+                        semanticLabel: 'Connection to Cane AID feature. Connect to your Cane AID device.',
                       ),
                     ),
                     // Vertical divider
@@ -213,18 +147,80 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                       width: 2,
                       color: AppColors.primary.withValues(alpha: 0.3),
                     ),
-                    // Bottom Right - Location Services (Smart Section)
+                    // Bottom Right - Location Services
                     Expanded(
-                      child: LocationServicesSection(
-                        isExpanded: _isLocationServicesExpanded,
-                        onTap: _toggleLocationServices,
-                        onCollapse: _collapseLocationServices,
+                      child: _buildFullSectionCard(
+                        icon: Icons.location_on,
+                        title: l10n.locationServices,
+                        subtitle: l10n.locationServicesSubtitle,
+                        onTap: () => Navigator.pushNamed(context, AppRoutes.location),
+                        semanticLabel: '${l10n.locationServices} feature. ${l10n.locationServicesSubtitle}.',
                       ),
                     ),
                   ],
                 ),
               ),
             ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildFullSectionCard({
+    required IconData icon,
+    required String title,
+    required String subtitle,
+    required VoidCallback onTap,
+    required String semanticLabel,
+  }) {
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        child: Semantics(
+          label: semanticLabel,
+          child: Container(
+            width: double.infinity,
+            height: double.infinity,
+            padding: const EdgeInsets.all(AppDimensions.paddingMedium),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(AppDimensions.paddingMedium),
+                  decoration: BoxDecoration(
+                    color: AppColors.primary.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(AppDimensions.radiusLarge),
+                  ),
+                  child: Icon(
+                    icon,
+                    size: AppDimensions.iconLarge,
+                    color: AppColors.primary,
+                  ),
+                ),
+                const SizedBox(height: AppDimensions.marginMedium),
+                Text(
+                  title,
+                  style: AppTextStyles.heading4.copyWith(
+                    fontWeight: FontWeight.bold,
+                  ),
+                  textAlign: TextAlign.center,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                ),
+                const SizedBox(height: AppDimensions.marginSmall),
+                Text(
+                  subtitle,
+                  style: AppTextStyles.bodySmall.copyWith(
+                    color: AppColors.textSecondary,
+                  ),
+                  textAlign: TextAlign.center,
+                  maxLines: 3,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ],
+            ),
           ),
         ),
       ),
