@@ -331,6 +331,6 @@ class _LocationServicesSectionState extends State<LocationServicesSection> {
           );
         }
       },
-    );
+    ); 
   }
 }

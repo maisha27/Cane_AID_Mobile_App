@@ -199,8 +199,8 @@ class _ConnectionStatusSectionState extends State<ConnectionStatusSection> {
           children: [
             // Connection status indicator circle
             Container(
-              width: 70,
-              height: 70,
+              width: 80,
+              height: 80,
               decoration: BoxDecoration(
                 color: statusColor.withValues(alpha: 0.2),
                 shape: BoxShape.circle,
@@ -211,7 +211,7 @@ class _ConnectionStatusSectionState extends State<ConnectionStatusSection> {
               ),
               child: Icon(
                 statusIcon,
-                size: 80,
+                size: 40,
                 color: statusColor,
               ),
             ),
