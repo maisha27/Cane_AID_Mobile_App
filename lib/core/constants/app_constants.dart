@@ -30,7 +30,7 @@ class AppConstants {
   static const String storagePermissionsGrantedKey = 'permissions_granted';
 
   // WebSocket Configuration (new)
-  static const String websocketServerUrl = 'ws://192.168.0.102:8765';
+  static const String websocketServerUrl = 'ws://10.103.136.46:8765';
   static const int websocketTimeoutSeconds = 10;
   static const int websocketReconnectAttempts = 5;
   static const int websocketReconnectDelaySeconds = 3;

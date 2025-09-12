@@ -41,6 +41,7 @@ class _ObstacleDetectionSectionState extends State<ObstacleDetectionSection> {
     if (!oldWidget.isExpanded && widget.isExpanded && !_hasStartedDetection) {
       _hasStartedDetection = true;
       WidgetsBinding.instance.addPostFrameCallback((_) {
+        _ensureWebSocketConnection();
         _announceDetectionStart();
       });
     }
@@ -49,6 +50,26 @@ class _ObstacleDetectionSectionState extends State<ObstacleDetectionSection> {
     if (oldWidget.isExpanded && !widget.isExpanded) {
       _hasStartedDetection = false;
       _lastAnnouncedStatus = '';
+    }
+  }
+
+  /// Ensure WebSocket connection when obstacle detection starts
+  Future<void> _ensureWebSocketConnection() async {
+    debugPrint('🚧 DEBUG: Ensuring WebSocket connection for obstacle detection...');
+    
+    final websocketProvider = Provider.of<WebSocketProvider>(context, listen: false);
+    
+    if (!websocketProvider.isConnected) {
+      debugPrint('🚧 DEBUG: WebSocket not connected, attempting connection...');
+      final success = await websocketProvider.connectToServer();
+      
+      if (success) {
+        debugPrint('🚧 DEBUG: WebSocket connected successfully for obstacle detection!');
+      } else {
+        debugPrint('🚧 ERROR: Failed to connect WebSocket: ${websocketProvider.lastError}');
+      }
+    } else {
+      debugPrint('🚧 DEBUG: WebSocket already connected for obstacle detection');
     }
   }
 
@@ -193,6 +214,8 @@ class _ObstacleDetectionSectionState extends State<ObstacleDetectionSection> {
           final status = _getObstacleStatus(distance);
           final statusColor = _getStatusColor(distance);
           final isObstacle = distance < _obstacleThreshold;
+          
+          debugPrint('🚧 DEBUG: Distance Data - ${distance.toStringAsFixed(1)} cm, Status: $status');
           
           // Announce obstacle detection
           WidgetsBinding.instance.addPostFrameCallback((_) {

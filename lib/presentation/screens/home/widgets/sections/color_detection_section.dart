@@ -39,6 +39,7 @@ class _ColorDetectionSectionState extends State<ColorDetectionSection> {
       _hasStartedDetection = true;
       WidgetsBinding.instance.addPostFrameCallback((_) {
         _announceDetectionStart();
+        _ensureWebSocketConnection();
       });
     }
     
@@ -46,6 +47,26 @@ class _ColorDetectionSectionState extends State<ColorDetectionSection> {
     if (oldWidget.isExpanded && !widget.isExpanded) {
       _hasStartedDetection = false;
       _lastAnnouncedColor = '';
+    }
+  }
+
+  /// Ensure WebSocket is connected when color detection starts
+  Future<void> _ensureWebSocketConnection() async {
+    debugPrint('🎨 DEBUG: Ensuring WebSocket connection for color detection...');
+    
+    final websocketProvider = Provider.of<WebSocketProvider>(context, listen: false);
+    
+    if (!websocketProvider.isConnected) {
+      debugPrint('🎨 DEBUG: WebSocket not connected, attempting connection...');
+      final success = await websocketProvider.connectToServer();
+      
+      if (success) {
+        debugPrint('🎨 DEBUG: WebSocket connection successful for color detection!');
+      } else {
+        debugPrint('🎨 ERROR: WebSocket connection failed for color detection: ${websocketProvider.lastError}');
+      }
+    } else {
+      debugPrint('🎨 DEBUG: WebSocket already connected for color detection');
     }
   }
 

@@ -3,6 +3,13 @@ import 'package:flutter/material.dart';
 import '../../core/services/websocket_service.dart';
 import '../../core/constants/app_constants.dart';
 
+/// Connection status for the WebSocket
+enum ConnectionStatus {
+  disconnected,      // WebSocket not connected
+  connectedNoData,   // Connected but no recent data
+  activeWithData,    // Connected and receiving data
+}
+
 /// Simple WebSocket provider following the sample code pattern
 /// Direct data storage with Map<String, dynamic> like the sample
 class WebSocketProvider extends ChangeNotifier {
@@ -14,6 +21,9 @@ class WebSocketProvider extends ChangeNotifier {
   String? _serverUrl;
   String? _lastError;
   
+  // Data timestamp tracking for connection status
+  DateTime? _lastDataReceived;
+  
   // Stream subscription for data
   StreamSubscription<Map<String, dynamic>>? _dataSubscription;
 
@@ -22,6 +32,7 @@ class WebSocketProvider extends ChangeNotifier {
   bool get isConnected => _isConnected;
   String? get serverUrl => _serverUrl;
   String? get lastError => _lastError;
+  DateTime? get lastDataReceived => _lastDataReceived;
   
   /// Direct data access like your sample
   int? get r => _data?['r'];
@@ -30,6 +41,24 @@ class WebSocketProvider extends ChangeNotifier {
   double? get distance => _data?['distance']?.toDouble();
   double? get latitude => _data?['latitude']?.toDouble();
   double? get longitude => _data?['longitude']?.toDouble();
+
+  /// Check if we received data recently (within seconds)
+  bool isDataRecent({int secondsThreshold = 10}) {
+    if (_lastDataReceived == null) return false;
+    final timeDiff = DateTime.now().difference(_lastDataReceived!);
+    return timeDiff.inSeconds <= secondsThreshold;
+  }
+
+  /// Get connection status for UI display
+  ConnectionStatus getConnectionStatus() {
+    if (!_isConnected) {
+      return ConnectionStatus.disconnected;
+    } else if (isDataRecent()) {
+      return ConnectionStatus.activeWithData;
+    } else {
+      return ConnectionStatus.connectedNoData;
+    }
+  }
 
   /// Connect to WebSocket server - simple like your sample
   Future<bool> connectToServer({String? customUrl}) async {
@@ -64,30 +93,40 @@ class WebSocketProvider extends ChangeNotifier {
 
   /// Start listening to data - simple like your sample
   void _startListeningToData() {
+    debugPrint("📡 DEBUG: Starting to listen for WebSocket data...");
+    
     final dataStream = _webSocketService.dataStream;
-    if (dataStream == null) return;
+    if (dataStream == null) {
+      debugPrint("📡 ERROR: WebSocket data stream is null");
+      return;
+    }
+    
+    debugPrint("📡 DEBUG: WebSocket data stream obtained, setting up listener...");
     
     _dataSubscription = dataStream.listen(
       (newData) {
         // Direct data update like your sample setState pattern
         _data = newData;
+        _lastDataReceived = DateTime.now(); // Track when we received data
         _clearError();
         notifyListeners();
         
-        debugPrint("WebSocket Provider: Data updated - RGB(${newData['r']}, ${newData['g']}, ${newData['b']})");
+        debugPrint("📡 SUCCESS: WebSocket Provider data updated - RGB(${newData['r']}, ${newData['g']}, ${newData['b']}), Distance: ${newData['distance']}, GPS: (${newData['latitude']}, ${newData['longitude']}) at ${_lastDataReceived}");
       },
       onError: (error) {
         _setError("Data stream error: $error");
-        debugPrint("WebSocket Provider data error: $error");
+        debugPrint("📡 ERROR: WebSocket Provider data error: $error");
         notifyListeners();
       },
       onDone: () {
         _isConnected = false;
         _setError("Connection closed");
-        debugPrint("WebSocket Provider: Connection closed");
+        debugPrint("📡 WARNING: WebSocket Provider connection closed");
         notifyListeners();
       },
     );
+    
+    debugPrint("📡 DEBUG: WebSocket data listener setup complete");
   }
 
   /// Disconnect from server

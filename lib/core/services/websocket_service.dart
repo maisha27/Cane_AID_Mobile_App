@@ -22,7 +22,7 @@ class WebSocketService {
   /// Connect to WebSocket server - simple like your sample
   Future<bool> connect({String? customUrl}) async {
     if (_isConnected) {
-      debugPrint("Already connected to WebSocket");
+      debugPrint("🔗 DEBUG: Already connected to WebSocket");
       return true;
     }
 
@@ -30,17 +30,17 @@ class WebSocketService {
       final url = customUrl ?? AppConstants.websocketServerUrl;
       _serverUrl = url;
       
-      debugPrint("Connecting to WebSocket: $url");
+      debugPrint("🔗 DEBUG: Connecting to WebSocket: $url");
       
       // Simple direct connection like your sample
       _channel = WebSocketChannel.connect(Uri.parse(url));
       
       _isConnected = true;
-      debugPrint("WebSocket connected successfully");
+      debugPrint("🔗 DEBUG: WebSocket connected successfully to $url");
       
       return true;
     } catch (e) {
-      debugPrint("WebSocket connection error: $e");
+      debugPrint("🔗 ERROR: WebSocket connection error: $e");
       _isConnected = false;
       return false;
     }
@@ -48,16 +48,22 @@ class WebSocketService {
 
   /// Get data stream - simple like your sample
   Stream<Map<String, dynamic>>? get dataStream {
-    if (_channel == null) return null;
+    if (_channel == null) {
+      debugPrint("🔗 DEBUG: WebSocket channel is null, cannot get data stream");
+      return null;
+    }
+    
+    debugPrint("🔗 DEBUG: Creating WebSocket data stream");
     
     return _channel!.stream.map((message) {
       try {
         // Direct JSON parsing like your sample
+        debugPrint("🔗 DEBUG: Raw WebSocket message received: $message");
         final decoded = jsonDecode(message);
-        debugPrint("WebSocket received: $decoded");
+        debugPrint("🔗 DEBUG: Parsed WebSocket data: $decoded");
         return decoded as Map<String, dynamic>;
       } catch (e) {
-        debugPrint("Error parsing JSON: $e");
+        debugPrint("🔗 ERROR: Error parsing JSON: $e, Raw message: $message");
         return <String, dynamic>{}; // Return empty map on error
       }
     });

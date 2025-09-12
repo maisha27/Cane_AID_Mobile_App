@@ -10,6 +10,7 @@ import 'widgets/sections/color_detection_section.dart';
 import 'widgets/sections/obstacle_detection_section.dart';
 import 'widgets/sections/location_services_section.dart';
 import 'widgets/sections/connection_status_section.dart';
+import '../../providers/websocket_provider.dart';
 
 /// Main dashboard screen with voice-guided navigation
 /// Provides access to all app features with accessibility support
@@ -30,6 +31,29 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
   void initState() {
     super.initState();
     _announceScreenEntry();
+    _initializeWebSocketConnection();
+  }
+
+  /// Initialize WebSocket connection automatically when home screen loads
+  Future<void> _initializeWebSocketConnection() async {
+    debugPrint('🔗 DEBUG: Initializing WebSocket connection...');
+    
+    // Get WebSocket provider
+    final websocketProvider = Provider.of<WebSocketProvider>(context, listen: false);
+    
+    // Connect if not already connected
+    if (!websocketProvider.isConnected) {
+      debugPrint('🔗 DEBUG: WebSocket not connected, attempting connection...');
+      final success = await websocketProvider.connectToServer();
+      
+      if (success) {
+        debugPrint('🔗 DEBUG: WebSocket connection successful!');
+      } else {
+        debugPrint('🔗 ERROR: WebSocket connection failed: ${websocketProvider.lastError}');
+      }
+    } else {
+      debugPrint('🔗 DEBUG: WebSocket already connected');
+    }
   }
 
   void _toggleColorDetection() {

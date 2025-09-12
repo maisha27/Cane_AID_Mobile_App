@@ -38,6 +38,7 @@ class _ConnectionStatusSectionState extends State<ConnectionStatusSection> {
     if (!oldWidget.isExpanded && widget.isExpanded && !_hasStartedDetection) {
       _hasStartedDetection = true;
       WidgetsBinding.instance.addPostFrameCallback((_) {
+        _ensureWebSocketConnection();
         _announceDetectionStart();
       });
     }
@@ -46,6 +47,26 @@ class _ConnectionStatusSectionState extends State<ConnectionStatusSection> {
     if (oldWidget.isExpanded && !widget.isExpanded) {
       _hasStartedDetection = false;
       _lastAnnouncedStatus = '';
+    }
+  }
+
+  /// Ensure WebSocket connection when connection status check starts
+  Future<void> _ensureWebSocketConnection() async {
+    debugPrint('🔗 DEBUG: Ensuring WebSocket connection for status check...');
+    
+    final websocketProvider = Provider.of<WebSocketProvider>(context, listen: false);
+    
+    if (!websocketProvider.isConnected) {
+      debugPrint('🔗 DEBUG: WebSocket not connected, attempting connection...');
+      final success = await websocketProvider.connectToServer();
+      
+      if (success) {
+        debugPrint('🔗 DEBUG: WebSocket connected successfully for status check!');
+      } else {
+        debugPrint('🔗 ERROR: Failed to connect WebSocket: ${websocketProvider.lastError}');
+      }
+    } else {
+      debugPrint('🔗 DEBUG: WebSocket already connected for status check');
     }
   }
 
@@ -58,18 +79,30 @@ class _ConnectionStatusSectionState extends State<ConnectionStatusSection> {
     }
   }
 
-  void _announceConnectionStatus(bool isConnected, String? serverUrl) async {
-    final status = isConnected ? 'connected' : 'disconnected';
+  void _announceConnectionStatus(ConnectionStatus status) async {
+    String statusKey = '';
+    String announcement = '';
     
-    if (status != _lastAnnouncedStatus) {
-      _lastAnnouncedStatus = status;
+    switch (status) {
+      case ConnectionStatus.activeWithData:
+        statusKey = 'active_with_data';
+        announcement = 'Connection secured and active';
+        break;
+      case ConnectionStatus.connectedNoData:
+        statusKey = 'connected_no_data';
+        announcement = 'Connected but no data received';
+        break;
+      case ConnectionStatus.disconnected:
+        statusKey = 'disconnected';
+        announcement = 'Connection not established';
+        break;
+    }
+    
+    if (statusKey != _lastAnnouncedStatus) {
+      _lastAnnouncedStatus = statusKey;
       try {
         final ttsProvider = Provider.of<TTSProvider>(context, listen: false);
-        if (isConnected) {
-          await ttsProvider.speak('Connected to Cane AID device');
-        } else {
-          await ttsProvider.speak('Not connected to Cane AID device');
-        }
+        await ttsProvider.speak(announcement);
         HapticFeedback.mediumImpact();
       } catch (e) {
         debugPrint('TTS error: $e');
@@ -78,18 +111,39 @@ class _ConnectionStatusSectionState extends State<ConnectionStatusSection> {
   }
 
   /// Get connection status text
-  String _getConnectionStatusText(bool isConnected) {
-    return isConnected ? 'Connected' : 'Not Connected';
+  String _getConnectionStatusText(ConnectionStatus status) {
+    switch (status) {
+      case ConnectionStatus.activeWithData:
+        return 'Active & Secure';
+      case ConnectionStatus.connectedNoData:
+        return 'Connected (No Data)';
+      case ConnectionStatus.disconnected:
+        return 'Not Connected';
+    }
   }
 
   /// Get connection status color
-  Color _getConnectionStatusColor(bool isConnected) {
-    return isConnected ? Colors.green : Colors.red;
+  Color _getConnectionStatusColor(ConnectionStatus status) {
+    switch (status) {
+      case ConnectionStatus.activeWithData:
+        return Colors.green;
+      case ConnectionStatus.connectedNoData:
+        return Colors.orange;
+      case ConnectionStatus.disconnected:
+        return Colors.red;
+    }
   }
 
-  /// Get connection status icon
-  IconData _getConnectionStatusIcon(bool isConnected) {
-    return isConnected ? Icons.check_circle : Icons.cancel;
+  /// Get connection status Bluetooth icon
+  IconData _getConnectionStatusIcon(ConnectionStatus status) {
+    switch (status) {
+      case ConnectionStatus.activeWithData:
+        return Icons.bluetooth_connected;
+      case ConnectionStatus.connectedNoData:
+        return Icons.bluetooth;
+      case ConnectionStatus.disconnected:
+        return Icons.bluetooth_disabled;
+    }
   }
 
   /// Format server URL for display
@@ -104,6 +158,20 @@ class _ConnectionStatusSectionState extends State<ConnectionStatusSection> {
       return '${uri.host}:${uri.port}';
     } catch (e) {
       return serverUrl;
+    }
+  }
+
+  /// Format timestamp for display
+  String _formatTimestamp(DateTime timestamp) {
+    final now = DateTime.now();
+    final diff = now.difference(timestamp);
+    
+    if (diff.inSeconds < 60) {
+      return '${diff.inSeconds}s ago';
+    } else if (diff.inMinutes < 60) {
+      return '${diff.inMinutes}m ago';
+    } else {
+      return '${diff.inHours}h ago';
     }
   }
 
@@ -135,7 +203,7 @@ class _ConnectionStatusSectionState extends State<ConnectionStatusSection> {
         Flexible(
           flex: 2,
           child: Icon(
-            Icons.wifi,
+            Icons.bluetooth,
             size: 80,
             color: AppColors.primary,
           ),
@@ -179,19 +247,22 @@ class _ConnectionStatusSectionState extends State<ConnectionStatusSection> {
       key: const ValueKey('detection'),
       builder: (context, websocketProvider, child) {
         // Get connection status from WebSocket provider
-        final isConnected = websocketProvider.isConnected;
+        final connectionStatus = websocketProvider.getConnectionStatus();
         final serverUrl = websocketProvider.serverUrl;
         final lastError = websocketProvider.lastError;
+        final lastDataReceived = websocketProvider.lastDataReceived;
+        
+        debugPrint('🔗 DEBUG: Connection Status - ${connectionStatus.toString()}, Last Data: $lastDataReceived');
         
         // Announce connection status
         WidgetsBinding.instance.addPostFrameCallback((_) {
-          _announceConnectionStatus(isConnected, serverUrl);
+          _announceConnectionStatus(connectionStatus);
         });
         
         // Get status properties
-        final statusText = _getConnectionStatusText(isConnected);
-        final statusColor = _getConnectionStatusColor(isConnected);
-        final statusIcon = _getConnectionStatusIcon(isConnected);
+        final statusText = _getConnectionStatusText(connectionStatus);
+        final statusColor = _getConnectionStatusColor(connectionStatus);
+        final statusIcon = _getConnectionStatusIcon(connectionStatus);
         final formattedServerUrl = _formatServerUrl(serverUrl);
         
         return Column(
@@ -230,7 +301,7 @@ class _ConnectionStatusSectionState extends State<ConnectionStatusSection> {
             const SizedBox(height: 8),
             
             // Server URL or error information
-            if (isConnected && serverUrl != null)
+            if (connectionStatus != ConnectionStatus.disconnected && serverUrl != null)
               Text(
                 formattedServerUrl,
                 style: AppTextStyles.bodySmall.copyWith(
@@ -242,7 +313,7 @@ class _ConnectionStatusSectionState extends State<ConnectionStatusSection> {
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
               )
-            else if (!isConnected && lastError != null)
+            else if (connectionStatus == ConnectionStatus.disconnected && lastError != null)
               Text(
                 'Connection failed',
                 style: AppTextStyles.bodySmall.copyWith(
@@ -252,12 +323,21 @@ class _ConnectionStatusSectionState extends State<ConnectionStatusSection> {
                 ),
                 textAlign: TextAlign.center,
               )
-            else if (!isConnected)
+            else if (connectionStatus == ConnectionStatus.disconnected)
               Text(
                 'No device connected',
                 style: AppTextStyles.bodySmall.copyWith(
                   color: AppColors.textSecondary,
                   fontSize: 16,
+                ),
+                textAlign: TextAlign.center,
+              )
+            else if (connectionStatus == ConnectionStatus.connectedNoData && lastDataReceived != null)
+              Text(
+                'Last data: ${_formatTimestamp(lastDataReceived)}',
+                style: AppTextStyles.bodySmall.copyWith(
+                  color: Colors.orange,
+                  fontSize: 12,
                 ),
                 textAlign: TextAlign.center,
               ),

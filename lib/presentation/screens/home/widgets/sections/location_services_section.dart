@@ -41,6 +41,7 @@ class _LocationServicesSectionState extends State<LocationServicesSection> {
     if (!oldWidget.isExpanded && widget.isExpanded && !_hasStartedDetection) {
       _hasStartedDetection = true;
       WidgetsBinding.instance.addPostFrameCallback((_) {
+        _ensureWebSocketConnection();
         _announceDetectionStart();
       });
     }
@@ -50,6 +51,26 @@ class _LocationServicesSectionState extends State<LocationServicesSection> {
       _hasStartedDetection = false;
       _lastAnnouncedLocation = '';
       _cachedLocation = null;
+    }
+  }
+
+  /// Ensure WebSocket connection when location services start
+  Future<void> _ensureWebSocketConnection() async {
+    debugPrint('📍 DEBUG: Ensuring WebSocket connection for location services...');
+    
+    final websocketProvider = Provider.of<WebSocketProvider>(context, listen: false);
+    
+    if (!websocketProvider.isConnected) {
+      debugPrint('📍 DEBUG: WebSocket not connected, attempting connection...');
+      final success = await websocketProvider.connectToServer();
+      
+      if (success) {
+        debugPrint('📍 DEBUG: WebSocket connected successfully for location services!');
+      } else {
+        debugPrint('📍 ERROR: Failed to connect WebSocket: ${websocketProvider.lastError}');
+      }
+    } else {
+      debugPrint('📍 DEBUG: WebSocket already connected for location services');
     }
   }
 
@@ -213,12 +234,14 @@ class _LocationServicesSectionState extends State<LocationServicesSection> {
         final hasGpsData = latitude != null && longitude != null;
         
         if (hasGpsData) {
-          // Fetch place name if we don't have it cached or coordinates changed
+          // Fetch place name if we don't have it cached or coordinates changed significantly
           if (_cachedLocation == null && !_isLoadingLocation) {
             WidgetsBinding.instance.addPostFrameCallback((_) {
               _fetchPlaceName(latitude, longitude);
             });
           }
+          
+          debugPrint('📍 DEBUG: GPS Data - Lat: $latitude, Lon: $longitude');
           
           return Column(
             mainAxisAlignment: MainAxisAlignment.center,
