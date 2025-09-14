@@ -300,18 +300,41 @@ class _ConnectionStatusSectionState extends State<ConnectionStatusSection> {
             ),
             const SizedBox(height: 8),
             
-            // Server URL or error information
-            if (connectionStatus != ConnectionStatus.disconnected && serverUrl != null)
+            // Connection details without server URL
+            if (connectionStatus == ConnectionStatus.activeWithData)
               Text(
-                formattedServerUrl,
+                'Data flowing normally',
                 style: AppTextStyles.bodySmall.copyWith(
-                  color: AppColors.textDark,
+                  color: Colors.green,
                   fontWeight: FontWeight.w500,
-                  fontSize: 16,
+                  fontSize: 14,
                 ),
                 textAlign: TextAlign.center,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
+              )
+            else if (connectionStatus == ConnectionStatus.connectedNoData)
+              Column(
+                children: [
+                  Text(
+                    'Waiting for data...',
+                    style: AppTextStyles.bodySmall.copyWith(
+                      color: Colors.orange,
+                      fontWeight: FontWeight.w500,
+                      fontSize: 14,
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                  if (lastDataReceived != null) ...[
+                    const SizedBox(height: 4),
+                    Text(
+                      'Last data: ${_formatTimestamp(lastDataReceived)}',
+                      style: AppTextStyles.bodySmall.copyWith(
+                        color: Colors.orange,
+                        fontSize: 12,
+                      ),
+                      textAlign: TextAlign.center,
+                    ),
+                  ],
+                ],
               )
             else if (connectionStatus == ConnectionStatus.disconnected && lastError != null)
               Text(
@@ -319,7 +342,7 @@ class _ConnectionStatusSectionState extends State<ConnectionStatusSection> {
                 style: AppTextStyles.bodySmall.copyWith(
                   color: Colors.orange,
                   fontWeight: FontWeight.w500,
-                  fontSize: 16,
+                  fontSize: 14,
                 ),
                 textAlign: TextAlign.center,
               )
@@ -328,16 +351,7 @@ class _ConnectionStatusSectionState extends State<ConnectionStatusSection> {
                 'No device connected',
                 style: AppTextStyles.bodySmall.copyWith(
                   color: AppColors.textSecondary,
-                  fontSize: 16,
-                ),
-                textAlign: TextAlign.center,
-              )
-            else if (connectionStatus == ConnectionStatus.connectedNoData && lastDataReceived != null)
-              Text(
-                'Last data: ${_formatTimestamp(lastDataReceived)}',
-                style: AppTextStyles.bodySmall.copyWith(
-                  color: Colors.orange,
-                  fontSize: 12,
+                  fontSize: 14,
                 ),
                 textAlign: TextAlign.center,
               ),
