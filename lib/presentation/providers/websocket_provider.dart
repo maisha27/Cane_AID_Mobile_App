@@ -1,7 +1,9 @@
 import 'dart:async';
+
 import 'package:flutter/material.dart';
-import '../../core/services/websocket_service.dart';
+
 import '../../core/constants/app_constants.dart';
+import '../../core/services/websocket_service.dart';
 
 /// Connection status for the WebSocket
 enum ConnectionStatus {
@@ -35,12 +37,14 @@ class WebSocketProvider extends ChangeNotifier {
   DateTime? get lastDataReceived => _lastDataReceived;
   
   /// Direct data access like your sample
-  int? get r => _data?['r'];
-  int? get g => _data?['g'];
-  int? get b => _data?['b'];
-  double? get distance => _data?['distance']?.toDouble();
-  double? get latitude => _data?['latitude']?.toDouble();
-  double? get longitude => _data?['longitude']?.toDouble();
+  // Around line 38-43, replace these getters:
+
+int? get r => 23;        // RED color
+int? get g => 31;        // Sample green component
+int? get b => 245;         // Sample blue component
+double? get distance => 18.7;  // Close obstacle (shows red warning)
+double? get latitude => 23.8103;   // Dhaka coordinates
+double? get longitude => 90.4125;  // Dhaka coordinates
 
   /// Check if we received data recently (within seconds)
   bool isDataRecent({int secondsThreshold = 10}) {
@@ -51,13 +55,17 @@ class WebSocketProvider extends ChangeNotifier {
 
   /// Get connection status for UI display
   ConnectionStatus getConnectionStatus() {
-    if (!_isConnected) {
-      return ConnectionStatus.disconnected;
-    } else if (isDataRecent()) {
-      return ConnectionStatus.activeWithData;
-    } else {
-      return ConnectionStatus.connectedNoData;
-    }
+    // Force connected status for sampling/demo
+    return ConnectionStatus.activeWithData;
+    
+    // Original logic (commented out for demo):
+    // if (!_isConnected) {
+    //   return ConnectionStatus.disconnected;
+    // } else if (isDataRecent()) {
+    //   return ConnectionStatus.activeWithData;
+    // } else {
+    //   return ConnectionStatus.connectedNoData;
+    // }
   }
 
   /// Connect to WebSocket server - simple like your sample

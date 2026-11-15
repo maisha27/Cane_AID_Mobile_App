@@ -1,14 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
+
 import '../../../core/theme/app_colors.dart';
-import '../../../core/theme/text_styles.dart';
 import '../../../core/theme/dimensions.dart';
+import '../../../core/theme/text_styles.dart';
 import '../../../l10n/generated/app_localizations.dart';
-import '../../widgets/common/accessible_card.dart';
-import '../../widgets/common/accessible_button.dart';
-import '../../providers/websocket_provider.dart';
 import '../../providers/tts_provider.dart';
+import '../../providers/websocket_provider.dart';
+import '../../widgets/common/accessible_button.dart';
+import '../../widgets/common/accessible_card.dart';
 
 /// WebSocket connection screen for Cane AID device communication
 /// Replaces Bluetooth connection screen for direct device connectivity
@@ -52,7 +53,7 @@ class _WebSocketConnectionScreenState extends State<WebSocketConnectionScreen> {
 
   void _initializeServerUrl() {
     final wsProvider = Provider.of<WebSocketProvider>(context, listen: false);
-    _serverUrlController.text = wsProvider.serverUrl ?? 'ws://192.168.1.100:8080/cane-aid';
+    _serverUrlController.text = wsProvider.serverUrl ?? 'ws://10.103.137.227:8765';
   }
 
   @override
@@ -246,7 +247,7 @@ class _WebSocketConnectionScreenState extends State<WebSocketConnectionScreen> {
               controller: _serverUrlController,
               decoration: const InputDecoration(
                 labelText: 'Server URL',
-                hintText: 'ws://192.168.1.100:8080/cane-aid',
+                hintText: 'ws://10.103.137.227:8765',
                 border: OutlineInputBorder(),
                 prefixIcon: Icon(Icons.link),
               ),
@@ -267,7 +268,7 @@ class _WebSocketConnectionScreenState extends State<WebSocketConnectionScreen> {
           Wrap(
             spacing: AppDimensions.marginSmall,
             children: [
-              _buildQuickConnectChip('Local (192.168.1.100)', 'ws://192.168.1.100:8080/cane-aid'),
+              _buildQuickConnectChip('Local (10.103.137.227)', 'ws://10.103.137.227:8765'),
               _buildQuickConnectChip('Localhost', 'ws://localhost:8080/cane-aid'),
               _buildQuickConnectChip('WiFi Hotspot', 'ws://192.168.43.1:8080/cane-aid'),
             ],
@@ -545,7 +546,7 @@ class _WebSocketConnectionScreenState extends State<WebSocketConnectionScreen> {
       
       String serverUrl = _isCustomUrl 
           ? _serverUrlController.text.trim()
-          : wsProvider.serverUrl ?? 'ws://192.168.1.100:8080/cane-aid';
+          : wsProvider.serverUrl ?? 'ws://10.103.137.227:8765';
       
       final success = await wsProvider.connectToServer(
         customUrl: _isCustomUrl ? serverUrl : null,

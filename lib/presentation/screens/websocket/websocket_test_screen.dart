@@ -1,12 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+
 import '../../../core/theme/app_colors.dart';
-import '../../../core/theme/text_styles.dart';
 import '../../../core/theme/dimensions.dart';
-import '../../widgets/common/accessible_card.dart';
-import '../../widgets/common/accessible_button.dart';
-import '../../providers/websocket_provider.dart';
+import '../../../core/theme/text_styles.dart';
 import '../../providers/tts_provider.dart';
+import '../../providers/websocket_provider.dart';
+import '../../widgets/common/accessible_button.dart';
+import '../../widgets/common/accessible_card.dart';
 
 /// WebSocket testing screen to verify connection and data flow
 /// This is a development screen for testing Phase 1 implementation
@@ -23,7 +24,7 @@ class _WebSocketTestScreenState extends State<WebSocketTestScreen> {
   @override
   void initState() {
     super.initState();
-    _urlController.text = 'ws://192.168.1.100:8080/cane-aid';
+    _urlController.text = 'ws://10.103.137.227:8765';
   }
 
   @override
@@ -67,7 +68,7 @@ class _WebSocketTestScreenState extends State<WebSocketTestScreen> {
                       TextField(
                         controller: _urlController,
                         decoration: const InputDecoration(
-                          hintText: 'ws://192.168.1.100:8080/cane-aid',
+                          hintText: 'ws://10.103.137.227:8765',
                           border: OutlineInputBorder(),
                         ),
                         style: AppTextStyles.bodyMedium,
